@@ -7,7 +7,5 @@ var (
 	ErrInvalidArgument = errors.New("invalid argument")
 	ErrConflict        = errors.New("conflict")
 	ErrTimeLimit       = errors.New("wait 1 minute")
-	ErrFrozen          = errors.New("frozen due to spam")
-	ErrTimesUp         = errors.New("times up")
 	ErrForbidden       = errors.New("forbidden")
 )

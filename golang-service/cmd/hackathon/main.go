@@ -15,7 +15,6 @@ import (
 	core_max_server "github.com/m0dris/hackathon/internal/core/transport/max/server"
 	core_max_session "github.com/m0dris/hackathon/internal/core/transport/max/session"
 
-	core_http_middleware "github.com/m0dris/hackathon/internal/core/transport/http/middleware"
 	core_http_server "github.com/m0dris/hackathon/internal/core/transport/http/server"
 
 	pb "github.com/m0dris/hackathon/internal/grpc/pb"
@@ -79,8 +78,8 @@ func main() {
 
 	router := core_max_server.NewRouter(
 		sessions,
-		core_max_middleware.Recover(),
 		core_max_middleware.Logger(logger),
+		core_max_middleware.Recover(),
 		core_max_middleware.ResolveUser(usersSvc),
 	)
 	router.RegisterBotStarted(usersTransport.BotStarted)
@@ -101,21 +100,11 @@ func main() {
 	httpServer := core_http_server.NewHTTPServer(
 		core_http_server.NewConfigMust(),
 		logger,
-		core_http_middleware.RequestId(),
-		core_http_middleware.Logger(logger),
-		core_http_middleware.Trace(),
-		core_http_middleware.Panic(),
 	)
 
-	apiVersionRouter := core_http_server.NewAPIVersionRouter(core_http_server.ApiVersion1)
-	apiVersionRouter.RegisterRoutes(core_http_server.Route{
-		Method: "POST",
-		Path:   "/webhook",
-		Handler: maxClient.WebhookHandler(func(update schemes.UpdateInterface) {
-			router.Dispatch(context.Background(), update)
-		}),
-	})
-	httpServer.RegisterAPIRoutes(apiVersionRouter)
+	httpServer.HandleFunc("POST /webhook", maxClient.WebhookHandler(func(update schemes.UpdateInterface) {
+		router.Dispatch(context.Background(), update)
+	}))
 
 	if err := httpServer.Run(ctx); err != nil {
 		logger.Error("HTTP server run error", zap.Error(err))

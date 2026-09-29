@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	core_logger "github.com/m0dris/hackathon/internal/core/logger"
-	core_http_middleware "github.com/m0dris/hackathon/internal/core/transport/http/middleware"
 	"go.uber.org/zap"
 )
 
@@ -15,40 +15,25 @@ type HTTPServer struct {
 	mux    *http.ServeMux
 	config Config
 	log    *core_logger.Logger
-
-	middleware []core_http_middleware.Middleware
 }
 
-func NewHTTPServer(
-	config Config,
-	log *core_logger.Logger,
-	middleware ...core_http_middleware.Middleware,
-) *HTTPServer {
+func NewHTTPServer(config Config, log *core_logger.Logger) *HTTPServer {
 	return &HTTPServer{
-		mux:        http.NewServeMux(),
-		config:     config,
-		log:        log,
-		middleware: middleware,
+		mux:    http.NewServeMux(),
+		config: config,
+		log:    log,
 	}
 }
 
-func (s *HTTPServer) RegisterAPIRoutes(routers ...*APIVersionRouter) {
-	for _, router := range routers {
-		prefix := "/api/" + string(router.apiVersion)
-
-		s.mux.Handle(
-			prefix+"/",
-			http.StripPrefix(prefix, router.WithMiddleware()),
-		)
-	}
+func (s *HTTPServer) HandleFunc(pattern string, handler http.HandlerFunc) {
+	s.mux.HandleFunc(pattern, handler)
 }
 
 func (s *HTTPServer) Run(ctx context.Context) error {
-	mux := core_http_middleware.ChainMiddleware(s.mux, s.middleware...)
-
 	server := &http.Server{
-		Addr:    s.config.Addr,
-		Handler: mux,
+		Addr:              s.config.Addr,
+		Handler:           s.logRequests(s.mux),
+		ReadHeaderTimeout: 10 * time.Second,
 	}
 
 	ch := make(chan error, 1)
@@ -82,11 +67,38 @@ func (s *HTTPServer) Run(ctx context.Context) error {
 		if err := server.Shutdown(shutdownCtx); err != nil {
 			_ = server.Close()
 
-			return fmt.Errorf("shoutdown HTTP server: %w", err)
+			return fmt.Errorf("shutdown HTTP server: %w", err)
 		}
 
 		s.log.Warn("HTTP server stopped")
 	}
 
 	return nil
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *statusRecorder) WriteHeader(status int) {
+	r.status = status
+	r.ResponseWriter.WriteHeader(status)
+}
+
+func (s *HTTPServer) logRequests(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		start := time.Now()
+
+		next.ServeHTTP(rec, r)
+
+		s.log.Debug(
+			"HTTP request",
+			zap.String("method", r.Method),
+			zap.String("path", r.URL.Path),
+			zap.Int("status", rec.status),
+			zap.Duration("latency", time.Since(start)),
+		)
+	})
 }
