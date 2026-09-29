@@ -7,6 +7,7 @@ import net.devh.boot.grpc.server.service.GrpcService;
 import org.springframework.transaction.annotation.Transactional;
 import ru.rabtra.api.model.*;
 import ru.rabtra.api.model.enums.RequestStatus;
+import ru.rabtra.api.model.enums.Role;
 import ru.rabtra.api.repository.*;
 import ru.rabtra.api.utils.ProtoMapperUtils;
 
@@ -56,6 +57,9 @@ public class UkGrpcServiceImpl extends UkServiceGrpc.UkServiceImplBase {
     public void createHouse(CreateHouseRequestProto request, StreamObserver<HouseResponseProto> responseObserver) {
         User company = userRepository.findById(request.getCompanyId())
                 .orElseThrow(() -> Status.NOT_FOUND.withDescription("Company (User) not found").asRuntimeException());
+        if (company.getRole() != Role.COMPANY) {
+            throw Status.PERMISSION_DENIED.withDescription("Company role required").asRuntimeException();
+        }
 
         House house = House.builder()
                 .company(company)
@@ -158,6 +162,11 @@ public class UkGrpcServiceImpl extends UkServiceGrpc.UkServiceImplBase {
         UserFlat userFlat = userFlatRepository.findById(request.getUserFlatsId())
                 .orElseThrow(() -> Status.NOT_FOUND.withDescription("UserFlat not found").asRuntimeException());
 
+        if (!userFlat.getUser().getId().equals(request.getRequesterId())
+                || userFlat.getUser().getRole() != Role.USER) {
+            throw Status.PERMISSION_DENIED.withDescription("Not your flat").asRuntimeException();
+        }
+
         User company = userFlat.getFlat().getHouse().getCompany();
 
         Request serviceReq = Request.builder()
@@ -216,7 +225,13 @@ public class UkGrpcServiceImpl extends UkServiceGrpc.UkServiceImplBase {
             throw Status.PERMISSION_DENIED.withDescription("Not your request").asRuntimeException();
         }
 
-        serviceReq.setStatus(ProtoMapperUtils.toJavaStatus(request.getStatus()));
+        RequestStatus next = ProtoMapperUtils.toJavaStatus(request.getStatus());
+        RequestStatus current = serviceReq.getStatus();
+        if (next != current && !((current == RequestStatus.NEW && next == RequestStatus.IN_PROGRESS)
+                || (current == RequestStatus.IN_PROGRESS && next == RequestStatus.DONE))) {
+            throw Status.FAILED_PRECONDITION.withDescription("Invalid status transition").asRuntimeException();
+        }
+        serviceReq.setStatus(next);
         serviceReq = requestRepository.save(serviceReq);
 
         responseObserver.onNext(buildServiceRequestResponse(serviceReq));
