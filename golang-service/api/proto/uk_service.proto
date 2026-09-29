@@ -1,0 +1,191 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+package ru.rabtra.api;
+
+option java_multiple_files = true;
+option java_package = "ru.rabtra.api.grpc";
+option java_outer_classname = "UkServiceProto";
+
+option go_package = "github.com/m0dris/hackathon/internal/grpc/pb;ukpb";
+
+enum RoleProto {
+  ROLE_UNSPECIFIED = 0;
+  ROLE_USER = 1;
+  ROLE_COMPANY = 2;
+}
+
+enum RequestTypeProto {
+  TYPE_UNSPECIFIED = 0;
+  TYPE_DIRTY_ENTRANCE = 1;
+  TYPE_ELEVATOR_BROKEN = 2;
+  TYPE_NOISY_NEIGHBORS = 3;
+  TYPE_PLUMBING = 4;
+  TYPE_ELECTRICITY = 5;
+  TYPE_HEATING = 6;
+  TYPE_INTERCOM = 7;
+  TYPE_PARKING = 8;
+  TYPE_OTHER = 9;
+}
+
+enum RequestStatusProto {
+  STATUS_UNSPECIFIED = 0;
+  STATUS_NEW = 1;
+  STATUS_IN_PROGRESS = 2;
+  STATUS_DONE = 3;
+}
+
+message CreateUserRequestProto {
+  int64 id = 1;
+  int64 chat_id = 2;
+  string first_name = 3;
+  string last_name = 4;
+  string phone_number = 5;
+  RoleProto role = 6;
+}
+
+message GetUserMeRequestProto {
+  int64 requester_id = 1;
+}
+
+message UserResponseProto {
+  int64 id = 1;
+  int64 chat_id = 2;
+  string first_name = 3;
+  string last_name = 4;
+  string phone_number = 5;
+  RoleProto role = 6;
+  google.protobuf.Timestamp created_at = 7;
+}
+
+message CreateHouseRequestProto {
+  int64 company_id = 1;
+  string city = 2;
+  string street = 3;
+  string house_number = 4;
+}
+
+message GetMyHousesRequestProto {
+  int64 company_id = 1;
+}
+
+message SearchHouseByAddressRequestProto {
+  string city = 1;
+  string street = 2;
+  string house_number = 3;
+}
+
+message HouseResponseProto {
+  int64 id = 1;
+  int64 company_id = 2;
+  string city = 3;
+  string street = 4;
+  string house_number = 5;
+}
+
+message HouseListResponseProto {
+  repeated HouseResponseProto houses = 1;
+}
+
+message GetFlatsRequestProto {
+  int64 house_id = 1;
+}
+
+message FlatResponseProto {
+  int64 id = 1;
+  string city = 2;
+  string street = 3;
+  string house_number = 4;
+  int32 flat_number = 5;
+}
+
+message FlatListResponseProto {
+  repeated FlatResponseProto flats = 1;
+}
+
+message CreateMyFlatRequestProto {
+  int64 requester_id = 1;
+  int64 house_id = 2;
+  int32 flat_number = 3;
+}
+
+message GetMyFlatsRequestProto {
+  int64 requester_id = 1;
+}
+
+message UserFlatResponseProto {
+  int64 user_flat_id = 1;
+  FlatResponseProto flat = 2;
+}
+
+message UserFlatListResponseProto {
+  repeated UserFlatResponseProto my_flats = 1;
+}
+
+message CreateServiceRequestProto {
+  int64 requester_id = 1;
+  int64 user_flats_id = 2;
+  RequestTypeProto type = 3;
+  string title = 4;
+  string description = 5;
+}
+
+message GetMyServiceRequestsProto {
+  int64 requester_id = 1;
+}
+
+message GetCompanyServiceRequestsProto {
+  int64 company_id = 1;
+  optional RequestStatusProto status = 2;
+}
+
+message UpdateServiceRequestStatusProto {
+  int64 company_id = 1;
+  int64 request_id = 2;
+  RequestStatusProto status = 3;
+}
+
+message ServiceRequestResponseProto {
+  int64 id = 1;
+  int64 user_flats_id = 2;
+  int64 company_id = 3;
+  RequestTypeProto type = 4;
+  string title = 5;
+  string description = 6;
+  RequestStatusProto status = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+
+  string city = 10;
+  string street = 11;
+  string house_number = 12;
+  int32 flat_number = 13;
+
+  string applicant_first_name = 14;
+  string applicant_last_name = 15;
+  string applicant_phone = 16;
+}
+
+message ServiceRequestListResponseProto {
+  repeated ServiceRequestResponseProto requests = 1;
+}
+
+service UkService {
+  rpc CreateUser(CreateUserRequestProto) returns (UserResponseProto);
+  rpc GetUserMe(GetUserMeRequestProto) returns (UserResponseProto);
+
+  rpc CreateHouse(CreateHouseRequestProto) returns (HouseResponseProto);
+  rpc GetMyHouses(GetMyHousesRequestProto) returns (HouseListResponseProto);
+
+  rpc SearchHouseByAddress(SearchHouseByAddressRequestProto) returns (HouseResponseProto);
+
+  rpc GetFlatsByHouse(GetFlatsRequestProto) returns (FlatListResponseProto);
+  rpc CreateMyFlat(CreateMyFlatRequestProto) returns (UserFlatResponseProto);
+  rpc GetMyFlats(GetMyFlatsRequestProto) returns (UserFlatListResponseProto);
+
+  rpc CreateServiceRequest(CreateServiceRequestProto) returns (ServiceRequestResponseProto);
+  rpc GetMyRequests(GetMyServiceRequestsProto) returns (ServiceRequestListResponseProto);
+  rpc GetCompanyRequests(GetCompanyServiceRequestsProto) returns (ServiceRequestListResponseProto);
+  rpc UpdateRequestStatus(UpdateServiceRequestStatusProto) returns (ServiceRequestResponseProto);
+}
