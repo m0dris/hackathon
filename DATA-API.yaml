@@ -1,0 +1,33 @@
+# Draft: confirm evaluator schema and replace base_url before submission.
+version: '1.0'
+solution: Заявки в УК
+base_url: https://example.invalid
+checks:
+  - name: HTTP process responds
+    method: GET
+    path: /healthz
+    role: anonymous
+    request:
+      query: {}
+      headers: {}
+      body: null
+    expected:
+      status_codes: [200]
+      content_type: application/json
+      required_fields: [status]
+      body:
+        status: ok
+  - name: Reject webhook without secret
+    method: POST
+    path: /webhook
+    role: anonymous
+    request:
+      query: {}
+      headers:
+        Content-Type: application/json
+      body:
+        update_type: bot_started
+    expected:
+      status_codes: [401]
+      content_type: text/plain
+# Transport checks do not cover business operations. See docs/demo.md.

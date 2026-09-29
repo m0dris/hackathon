@@ -1,0 +1,65 @@
+openapi: 3.0.3
+info:
+  title: Заявки в УК HTTP transport
+  version: 0.1.0
+  description: HTTP-транспорт Go. Бизнес-операции используют внутренний gRPC из api/src/main/proto/uk_service.proto.
+servers:
+  - url: http://localhost:8080
+    description: Локальный запуск, публичный сервер пока отсутствует
+paths:
+  /healthz:
+    get:
+      operationId: healthz
+      summary: HTTP-процесс, без проверки MAX и БД
+      responses:
+        '200':
+          description: Процесс отвечает
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+  /webhook:
+    post:
+      operationId: maxWebhook
+      summary: Приём событий MAX
+      security:
+        - WebhookSecret: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [update_type]
+              properties:
+                update_type:
+                  type: string
+                  enum: [bot_started, message_created, message_callback]
+              additionalProperties: true
+              description: Поля события определяет MAX SDK v1.6.15.
+      responses:
+        '200':
+          description: HTTP-обработчик завершился. Не подтверждает доставку ответа MAX или успех бизнес-операции.
+        '400':
+          description: Некорректное событие
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Неверный или отсутствующий секрет webhook
+          content:
+            text/plain:
+              schema:
+                type: string
+components:
+  securitySchemes:
+    WebhookSecret:
+      type: apiKey
+      in: header
+      name: X-Max-Bot-Api-Secret
