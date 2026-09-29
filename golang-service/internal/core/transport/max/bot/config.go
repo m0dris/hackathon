@@ -2,6 +2,9 @@ package core_max_bot
 
 import (
 	"fmt"
+	"net/url"
+	"regexp"
+	"strings"
 
 	"github.com/kelseyhightower/envconfig"
 )
@@ -20,6 +23,16 @@ func NewConfig() (Config, error) {
 	var config Config
 	if err := envconfig.Process("MAX_BOT", &config); err != nil {
 		return Config{}, fmt.Errorf("process envconfig: %w", err)
+	}
+	if strings.TrimSpace(config.Token) == "" {
+		return Config{}, fmt.Errorf("MAX_BOT_TOKEN must not be empty")
+	}
+	if !regexp.MustCompile(`^[A-Za-z0-9_-]{5,256}$`).MatchString(config.Secret) {
+		return Config{}, fmt.Errorf("MAX_BOT_SECRET must contain 5-256 letters, digits, underscores or hyphens")
+	}
+	webhook, err := url.Parse(config.WebhookURL)
+	if err != nil || webhook.Scheme != "https" || webhook.Hostname() == "" || webhook.User != nil {
+		return Config{}, fmt.Errorf("MAX_BOT_WEBHOOK_URL must be an HTTPS URL without credentials")
 	}
 
 	return config, nil
