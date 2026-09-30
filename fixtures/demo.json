@@ -1,0 +1,13 @@
+{
+  "data_kind": "synthetic_manual_test_inputs",
+  "company": {"first_name": "Тест", "last_name": "Оператор", "phone_number": "+70000000001"},
+  "resident": {"first_name": "Тест", "last_name": "Житель", "phone_number": "+70000000002"},
+  "house": {"city": "Тестовый город", "street": "Учебная", "house_number": "1"},
+  "flat_number": 12,
+  "request": {
+    "type": "DIRTY_ENTRANCE",
+    "title": "Не убран подъезд",
+    "description": "Тестовая заявка: на первом этаже подъезда требуется уборка."
+  },
+  "expected_statuses": ["NEW", "IN_PROGRESS", "DONE"]
+}

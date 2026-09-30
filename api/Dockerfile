@@ -1,6 +1,7 @@
 FROM gradle:8.14-jdk21 AS build
 
 COPY --chown=gradle:gradle build.gradle.kts settings.gradle.kts /home/gradle/src/
+COPY --chown=gradle:gradle gradle.lockfile /home/gradle/src/
 COPY --chown=gradle:gradle src /home/gradle/src/src
 WORKDIR /home/gradle/src
 

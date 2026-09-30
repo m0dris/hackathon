@@ -18,6 +18,10 @@ repositories {
 	mavenCentral()
 }
 
+dependencyLocking {
+	lockAllConfigurations()
+}
+
 val protobufVersion = "4.36.2"
 val grpcVersion = "1.68.0"
 

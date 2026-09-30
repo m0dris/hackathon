@@ -39,4 +39,6 @@ out/
 *.properties
 *.yaml
 *.yml
-
+!gradle/wrapper/gradle-wrapper.properties
+!src/main/resources/application.yaml
+!src/test/resources/application.yaml

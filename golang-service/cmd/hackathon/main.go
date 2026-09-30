@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -105,6 +106,10 @@ func main() {
 	httpServer.HandleFunc("POST /webhook", maxClient.WebhookHandler(func(update schemes.UpdateInterface) {
 		router.Dispatch(context.Background(), update)
 	}))
+	httpServer.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	})
 
 	if err := httpServer.Run(ctx); err != nil {
 		logger.Error("HTTP server run error", zap.Error(err))
